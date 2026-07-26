@@ -2,7 +2,6 @@
 
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { Vector3 } from "three";
 import {
   MAX_DISTANCE,
@@ -35,11 +34,13 @@ export function GlobeCanvas({
   pendingNormal,
   onPick,
   onSelectMessage,
+  onContextLost,
 }: {
   messages: PlanetMessage[];
   pendingNormal?: Vector3 | null;
   onPick?: (normal: Vector3, scale: number) => void;
   onSelectMessage?: (message: PlanetMessage) => void;
+  onContextLost?: () => void;
 }) {
   function handlePlanetClick(event: ThreeEvent<MouseEvent>) {
     if (!onPick || event.delta > DRAG_THRESHOLD) return;
@@ -54,9 +55,15 @@ export function GlobeCanvas({
   return (
     <Canvas
       camera={{ position: [0, 0, 6.4], fov: 45 }}
-      // needed so the share card can snapshot the canvas later (Phase 5)
-      gl={{ preserveDrawingBuffer: true }}
-      dpr={[1, 1.75]}
+      dpr={[1, 1.5]}
+      onCreated={({ gl }) => {
+        // phones under memory pressure drop the GL context and leave a
+        // black rectangle behind; surface it so the page can offer a retry
+        gl.domElement.addEventListener("webglcontextlost", (event) => {
+          event.preventDefault();
+          onContextLost?.();
+        });
+      }}
     >
       <Nebula />
       <Stars radius={60} depth={30} count={1200} factor={2.4} fade speed={0.4} />
@@ -80,12 +87,6 @@ export function GlobeCanvas({
         minDistance={MIN_DISTANCE}
         maxDistance={MAX_DISTANCE}
       />
-
-      <EffectComposer>
-        {/* high threshold so only the atmosphere rim and stars bloom —
-            message text has to stay legible */}
-        <Bloom intensity={0.9} luminanceThreshold={0.72} luminanceSmoothing={0.3} mipmapBlur />
-      </EffectComposer>
     </Canvas>
   );
 }

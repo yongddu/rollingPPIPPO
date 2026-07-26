@@ -94,9 +94,9 @@ const atmosphereFragment = /* glsl */ `
   void main() {
     // rendered on the back faces, so the normal points away from us and
     // the glow piles up exactly at the silhouette
-    float rim = pow(max(dot(normalize(vNormalW), -vViewDir), 0.0), 2.6);
+    float rim = pow(max(dot(normalize(vNormalW), -vViewDir), 0.0), 2.2);
     float lit = smoothstep(-0.45, 0.85, dot(normalize(vNormalW), ${LIGHT_DIR}));
-    gl_FragColor = vec4(uGlow, rim * (0.28 + 0.72 * lit) * 0.85);
+    gl_FragColor = vec4(uGlow, rim * (0.3 + 0.7 * lit) * 1.05);
     #include <colorspace_fragment>
   }
 `;
@@ -142,7 +142,7 @@ export function Planet({
         />
       </mesh>
 
-      <mesh scale={1.055} raycast={() => null}>
+      <mesh scale={1.07} raycast={() => null}>
         <sphereGeometry args={[PLANET_RADIUS, 64, 64]} />
         <shaderMaterial
           vertexShader={atmosphereVertex}

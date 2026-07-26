@@ -23,6 +23,7 @@ export function PlanetScene({
   const [selected, setSelected] = useState<PlanetMessage | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [contextLost, setContextLost] = useState(false);
 
   const addMessage = useCallback((message: PlanetMessage) => {
     setMessages((current) =>
@@ -94,8 +95,24 @@ export function PlanetScene({
                 }
               : undefined
           }
+          onContextLost={() => setContextLost(true)}
         />
       </div>
+
+      {contextLost && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-[#100e28] px-6 text-center">
+          <p className="text-sm text-white/80">
+            화면을 그리는 데 문제가 생겼어요.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-full bg-white px-5 py-2.5 text-sm font-medium text-neutral-900"
+          >
+            다시 불러오기
+          </button>
+        </div>
+      )}
 
       {!pending && !selected && (
         <p className="pointer-events-none absolute inset-x-0 bottom-8 text-center text-xs text-white/60">
