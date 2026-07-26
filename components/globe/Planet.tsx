@@ -1,10 +1,15 @@
 "use client";
 
+import type { ThreeEvent } from "@react-three/fiber";
 import { PLANET_RADIUS } from "@/lib/utils/sphere";
 
-export function Planet() {
+export function Planet({
+  onClick,
+}: {
+  onClick?: (event: ThreeEvent<MouseEvent>) => void;
+}) {
   return (
-    <mesh>
+    <mesh onClick={onClick}>
       <sphereGeometry args={[PLANET_RADIUS, 64, 64]} />
       <meshStandardMaterial color="#b9a7f0" roughness={0.75} metalness={0.05} />
     </mesh>

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { GlobeCanvas } from "@/components/globe/GlobeCanvas";
+import { PlanetScene } from "@/components/globe/PlanetScene";
 
 export default async function PlanetPage({
   params,
@@ -28,9 +28,7 @@ export default async function PlanetPage({
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-[#100e28]">
-      <div className="absolute inset-0">
-        <GlobeCanvas messages={messages ?? []} />
-      </div>
+      <PlanetScene planetId={planet.id} initialMessages={messages ?? []} />
 
       <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-1 px-6 pt-8 text-center text-white">
         <h1 className="text-xl font-semibold drop-shadow">{planet.title}</h1>
@@ -40,10 +38,6 @@ export default async function PlanetPage({
           </p>
         )}
       </header>
-
-      <p className="pointer-events-none absolute inset-x-0 bottom-8 text-center text-xs text-white/50">
-        드래그하면 행성이 돌아가고, 두 손가락(또는 스크롤)으로 확대·축소할 수 있어요.
-      </p>
     </main>
   );
 }
