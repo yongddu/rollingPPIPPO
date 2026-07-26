@@ -32,10 +32,12 @@ export function GlobeCanvas({
   messages,
   pendingNormal,
   onPick,
+  onSelectMessage,
 }: {
   messages: PlanetMessage[];
   pendingNormal?: Vector3 | null;
   onPick?: (normal: Vector3, scale: number) => void;
+  onSelectMessage?: (message: PlanetMessage) => void;
 }) {
   function handlePlanetClick(event: ThreeEvent<MouseEvent>) {
     if (!onPick || event.delta > DRAG_THRESHOLD) return;
@@ -60,7 +62,11 @@ export function GlobeCanvas({
 
       <Planet onClick={onPick ? handlePlanetClick : undefined} />
       {messages.map((message) => (
-        <MessageLabel key={message.id} message={message} />
+        <MessageLabel
+          key={message.id}
+          message={message}
+          onSelect={onSelectMessage}
+        />
       ))}
       {pendingNormal && <PendingMarker normal={pendingNormal} />}
 

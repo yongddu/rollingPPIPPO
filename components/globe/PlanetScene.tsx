@@ -12,12 +12,17 @@ type Pending = { normal: Vector3; scale: number };
 export function PlanetScene({
   planetId,
   initialMessages,
+  isOwner = false,
 }: {
   planetId: string;
   initialMessages: PlanetMessage[];
+  isOwner?: boolean;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [selected, setSelected] = useState<PlanetMessage | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const addMessage = useCallback((message: PlanetMessage) => {
     setMessages((current) =>
@@ -47,19 +52,56 @@ export function PlanetScene({
     };
   }, [planetId, addMessage]);
 
+  async function deleteSelected() {
+    if (!selected || deleting) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", selected.id);
+
+    setDeleting(false);
+
+    if (error) {
+      setDeleteError("메시지를 지우지 못했어요. 다시 시도해주세요.");
+      return;
+    }
+
+    setMessages((current) => current.filter((m) => m.id !== selected.id));
+    setSelected(null);
+  }
+
   return (
     <>
       <div className="absolute inset-0">
         <GlobeCanvas
           messages={messages}
           pendingNormal={pending?.normal ?? null}
-          onPick={(normal, scale) => setPending({ normal, scale })}
+          onPick={(normal, scale) => {
+            setSelected(null);
+            setPending({ normal, scale });
+          }}
+          onSelectMessage={
+            isOwner
+              ? (message) => {
+                  setPending(null);
+                  setDeleteError(null);
+                  setSelected(message);
+                }
+              : undefined
+          }
         />
       </div>
 
-      {!pending && (
+      {!pending && !selected && (
         <p className="pointer-events-none absolute inset-x-0 bottom-8 text-center text-xs text-white/60">
-          행성을 돌려서 원하는 자리를 눌러보세요. 확대할수록 글씨가 작게 남아요.
+          {isOwner
+            ? "메시지를 누르면 지울 수 있어요. 빈 자리를 누르면 나도 남길 수 있어요."
+            : "행성을 돌려서 원하는 자리를 눌러보세요. 확대할수록 글씨가 작게 남아요."}
         </p>
       )}
 
@@ -74,6 +116,39 @@ export function PlanetScene({
             setPending(null);
           }}
         />
+      )}
+
+      {selected && (
+        <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur">
+            <p className="text-sm text-neutral-800">{selected.body}</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              — {selected.nickname}
+            </p>
+
+            {deleteError && (
+              <p className="mt-2 text-xs text-red-500">{deleteError}</p>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="flex-1 rounded-full border border-neutral-300 px-4 py-2 text-sm"
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={deleteSelected}
+                disabled={deleting}
+                className="flex-1 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {deleting ? "지우는 중..." : "이 메시지 지우기"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

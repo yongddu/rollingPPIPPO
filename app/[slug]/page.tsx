@@ -12,13 +12,18 @@ export default async function PlanetPage({
 
   const { data: planet } = await supabase
     .from("planets")
-    .select("id, title, deadline")
+    .select("id, title, deadline, owner_id")
     .eq("slug", slug)
     .single();
 
   if (!planet) {
     notFound();
   }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isOwner = user?.id === planet.owner_id;
 
   const { data: messages } = await supabase
     .from("messages")
@@ -28,7 +33,11 @@ export default async function PlanetPage({
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-[#100e28]">
-      <PlanetScene planetId={planet.id} initialMessages={messages ?? []} />
+      <PlanetScene
+        planetId={planet.id}
+        initialMessages={messages ?? []}
+        isOwner={isOwner}
+      />
 
       <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-1 px-6 pt-8 text-center text-white">
         <h1 className="text-xl font-semibold drop-shadow">{planet.title}</h1>
