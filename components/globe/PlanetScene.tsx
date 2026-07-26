@@ -60,14 +60,17 @@ export function PlanetScene({
     setDeleteError(null);
 
     const supabase = createClient();
-    const { error } = await supabase
+    // select() so a delete that RLS silently filtered to zero rows is
+    // reported instead of looking like it worked until the next reload
+    const { data, error } = await supabase
       .from("messages")
       .delete()
-      .eq("id", selected.id);
+      .eq("id", selected.id)
+      .select("id");
 
     setDeleting(false);
 
-    if (error) {
+    if (error || !data || data.length === 0) {
       setDeleteError("메시지를 지우지 못했어요. 다시 시도해주세요.");
       return;
     }

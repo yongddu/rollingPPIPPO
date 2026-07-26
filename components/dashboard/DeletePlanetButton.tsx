@@ -23,14 +23,17 @@ export function DeletePlanetButton({
     setError(null);
 
     const supabase = createClient();
-    const { error: deleteError } = await supabase
+    // select() so a delete that RLS silently filtered to zero rows is
+    // reported instead of looking like it worked until the next reload
+    const { data, error: deleteError } = await supabase
       .from("planets")
       .delete()
-      .eq("id", planetId);
+      .eq("id", planetId)
+      .select("id");
 
     setDeleting(false);
 
-    if (deleteError) {
+    if (deleteError || !data || data.length === 0) {
       setError("삭제하지 못했어요. 다시 시도해주세요.");
       return;
     }
