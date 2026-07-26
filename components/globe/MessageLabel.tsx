@@ -3,13 +3,14 @@
 import { Text } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import { Vector3 } from "three";
-import { surfacePosition, surfaceQuaternion } from "@/lib/utils/sphere";
+import {
+  BASE_FONT_SIZE,
+  surfacePosition,
+  surfaceQuaternion,
+} from "@/lib/utils/sphere";
 import type { PlanetMessage } from "./types";
 
 const FONT = "/fonts/Pretendard-Regular.subset.woff";
-
-/** Base font size in world units, before the message's own scale is applied. */
-const BASE_FONT_SIZE = 0.075;
 
 export function MessageLabel({
   message,
@@ -40,7 +41,7 @@ export function MessageLabel({
       <Text
         font={FONT}
         fontSize={BASE_FONT_SIZE * message.scale}
-        maxWidth={1.4 * message.scale}
+        maxWidth={BASE_FONT_SIZE * message.scale * 14}
         textAlign="center"
         anchorX="center"
         anchorY="middle"

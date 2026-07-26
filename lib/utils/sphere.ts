@@ -8,11 +8,22 @@ const TEXT_OFFSET = 0.015;
 
 /** Camera distance range OrbitControls is clamped to. */
 export const MIN_DISTANCE = 2.6;
-export const MAX_DISTANCE = 8;
+export const MAX_DISTANCE = 24;
 
-/** Text scale range, mapped from camera distance at write time. */
+/**
+ * Text scale range, mapped from camera distance at write time. The cap
+ * matches the `scale` CHECK constraint on the messages table.
+ */
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 3;
+
+/**
+ * Font size for a message at scale 1, in world units. Sized so the
+ * largest allowed message (scale 3) is one twentieth of the planet's
+ * diameter — big enough to shout, small enough that one message can't
+ * swallow the planet.
+ */
+export const BASE_FONT_SIZE = (PLANET_RADIUS * 2) / 20 / MAX_SCALE;
 
 /**
  * Zoomed in (close camera) writes small text, zoomed out writes big text —
