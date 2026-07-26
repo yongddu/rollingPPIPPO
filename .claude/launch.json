@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rolling-planet-dev",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-c",
+        "PATH=/Users/line/.nvm/versions/node/v24.18.0/bin:$PATH npm run dev"
+      ],
+      "port": 3000
+    }
+  ]
+}
