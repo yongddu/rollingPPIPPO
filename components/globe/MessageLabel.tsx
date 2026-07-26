@@ -44,9 +44,10 @@ export function MessageLabel({
         textAlign="center"
         anchorX="center"
         anchorY="middle"
-        color="#2b2350"
-        outlineWidth={0.004 * message.scale}
-        outlineColor="#ffffff"
+        color="#ffffff"
+        outlineWidth={0.006 * message.scale}
+        outlineColor="#241a3f"
+        outlineOpacity={0.85}
       >
         {message.body}
       </Text>
@@ -56,7 +57,10 @@ export function MessageLabel({
         position={[0, -BASE_FONT_SIZE * message.scale * 1.1, 0]}
         anchorX="center"
         anchorY="middle"
-        color="#5c4f8f"
+        color="#f4e9ff"
+        outlineWidth={0.004 * message.scale}
+        outlineColor="#241a3f"
+        outlineOpacity={0.7}
       >
         {`— ${message.nickname}`}
       </Text>

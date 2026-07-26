@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { PlanetScene } from "@/components/globe/PlanetScene";
 
 export default async function PlanetPage({
@@ -47,6 +48,13 @@ export default async function PlanetPage({
           </p>
         )}
       </header>
+
+      <Link
+        href={user ? "/dashboard" : "/"}
+        className="absolute left-4 top-7 z-10 rounded-full bg-white/15 px-3 py-1.5 text-sm text-white backdrop-blur transition hover:bg-white/25"
+      >
+        {user ? "← 내 행성 목록" : "← 나도 만들기"}
+      </Link>
     </main>
   );
 }

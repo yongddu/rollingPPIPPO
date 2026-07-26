@@ -2,6 +2,7 @@
 
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { Vector3 } from "three";
 import {
   MAX_DISTANCE,
@@ -11,6 +12,7 @@ import {
   surfaceQuaternion,
 } from "@/lib/utils/sphere";
 import { Planet } from "./Planet";
+import { Nebula } from "./Nebula";
 import { MessageLabel } from "./MessageLabel";
 import type { PlanetMessage } from "./types";
 
@@ -20,7 +22,7 @@ const DRAG_THRESHOLD = 4;
 function PendingMarker({ normal }: { normal: Vector3 }) {
   return (
     <group position={surfacePosition(normal)} quaternion={surfaceQuaternion(normal)}>
-      <mesh>
+      <mesh raycast={() => null}>
         <ringGeometry args={[0.045, 0.06, 32]} />
         <meshBasicMaterial color="#fff6b0" transparent opacity={0.9} />
       </mesh>
@@ -54,11 +56,10 @@ export function GlobeCanvas({
       camera={{ position: [0, 0, 6.4], fov: 45 }}
       // needed so the share card can snapshot the canvas later (Phase 5)
       gl={{ preserveDrawingBuffer: true }}
+      dpr={[1, 1.75]}
     >
-      <color attach="background" args={["#100e28"]} />
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[4, 3, 5]} intensity={1.4} color="#fff0f5" />
-      <directionalLight position={[-5, -2, -3]} intensity={0.5} color="#7fd7ff" />
+      <Nebula />
+      <Stars radius={60} depth={30} count={1200} factor={2.4} fade speed={0.4} />
 
       <Planet onClick={onPick ? handlePlanetClick : undefined} />
       {messages.map((message) => (
@@ -70,8 +71,6 @@ export function GlobeCanvas({
       ))}
       {pendingNormal && <PendingMarker normal={pendingNormal} />}
 
-      <Stars radius={60} depth={40} count={1500} factor={3} fade speed={0.6} />
-
       <OrbitControls
         enablePan={false}
         enableDamping
@@ -81,6 +80,12 @@ export function GlobeCanvas({
         minDistance={MIN_DISTANCE}
         maxDistance={MAX_DISTANCE}
       />
+
+      <EffectComposer>
+        {/* high threshold so only the atmosphere rim and stars bloom —
+            message text has to stay legible */}
+        <Bloom intensity={0.9} luminanceThreshold={0.72} luminanceSmoothing={0.3} mipmapBlur />
+      </EffectComposer>
     </Canvas>
   );
 }
