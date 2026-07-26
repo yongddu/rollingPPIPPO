@@ -1,6 +1,7 @@
 "use client";
 
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { useEffect } from "react";
+import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { Vector3 } from "three";
 import {
@@ -30,18 +31,42 @@ function PendingMarker({ normal }: { normal: Vector3 }) {
   );
 }
 
+/**
+ * Hands a snapshot function out of the canvas. The drawing buffer isn't
+ * preserved (it cost us the GL context on phones), so the frame has to be
+ * re-rendered immediately before reading it back.
+ */
+function SnapshotBridge({
+  onReady,
+}: {
+  onReady: (takeSnapshot: () => string) => void;
+}) {
+  const { gl, scene, camera } = useThree();
+
+  useEffect(() => {
+    onReady(() => {
+      gl.render(scene, camera);
+      return gl.domElement.toDataURL("image/png");
+    });
+  }, [gl, scene, camera, onReady]);
+
+  return null;
+}
+
 export function GlobeCanvas({
   messages,
   pendingNormal,
   onPick,
   onSelectMessage,
   onContextLost,
+  onSnapshotReady,
 }: {
   messages: PlanetMessage[];
   pendingNormal?: Vector3 | null;
   onPick?: (normal: Vector3, scale: number) => void;
   onSelectMessage?: (message: PlanetMessage) => void;
   onContextLost?: () => void;
+  onSnapshotReady?: (takeSnapshot: () => string) => void;
 }) {
   function handlePlanetClick(event: ThreeEvent<MouseEvent>) {
     if (!onPick || event.delta > DRAG_THRESHOLD) return;
@@ -66,6 +91,8 @@ export function GlobeCanvas({
         });
       }}
     >
+      {onSnapshotReady && <SnapshotBridge onReady={onSnapshotReady} />}
+
       <Nebula />
       <Stars radius={60} depth={30} count={1200} factor={2.4} fade speed={0.4} />
 

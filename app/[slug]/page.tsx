@@ -36,6 +36,8 @@ export default async function PlanetPage({
     <main className="relative h-dvh w-full overflow-hidden bg-[#100e28]">
       <PlanetScene
         planetId={planet.id}
+        slug={slug}
+        title={planet.title}
         initialMessages={messages ?? []}
         isOwner={isOwner}
       />

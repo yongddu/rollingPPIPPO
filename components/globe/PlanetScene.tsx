@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Vector3 } from "three";
 import { createClient } from "@/lib/supabase/client";
+import { ShareCardButton } from "@/components/share/ShareCardButton";
 import { GlobeCanvas } from "./GlobeCanvas";
 import { MessageComposer } from "./MessageComposer";
 import type { PlanetMessage } from "./types";
@@ -11,19 +12,28 @@ type Pending = { normal: Vector3; scale: number };
 
 export function PlanetScene({
   planetId,
+  slug,
+  title,
   initialMessages,
   isOwner = false,
 }: {
   planetId: string;
+  slug: string;
+  title: string;
   initialMessages: PlanetMessage[];
   isOwner?: boolean;
 }) {
+  const snapshot = useRef<(() => string) | null>(null);
   const [messages, setMessages] = useState(initialMessages);
   const [pending, setPending] = useState<Pending | null>(null);
   const [selected, setSelected] = useState<PlanetMessage | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [contextLost, setContextLost] = useState(false);
+
+  const handleSnapshotReady = useCallback((take: () => string) => {
+    snapshot.current = take;
+  }, []);
 
   const addMessage = useCallback((message: PlanetMessage) => {
     setMessages((current) =>
@@ -99,6 +109,16 @@ export function PlanetScene({
               : undefined
           }
           onContextLost={() => setContextLost(true)}
+          onSnapshotReady={handleSnapshotReady}
+        />
+      </div>
+
+      <div className="absolute right-4 top-7 z-10">
+        <ShareCardButton
+          slug={slug}
+          title={title}
+          messageCount={messages.length}
+          takeSnapshot={() => snapshot.current?.() ?? null}
         />
       </div>
 
