@@ -10,6 +10,12 @@ export default function LoginPage() {
       provider,
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        // Kakao only grants account_email to business-verified apps, so we
+        // request nickname/profile image only — Supabase would otherwise ask
+        // for account_email by default and Kakao rejects the whole request.
+        ...(provider === "kakao" && {
+          scopes: "profile_nickname profile_image",
+        }),
       },
     });
   }
