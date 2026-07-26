@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { DeletePlanetButton } from "@/components/dashboard/DeletePlanetButton";
+import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -41,15 +42,21 @@ export default async function DashboardPage() {
           {planets.map((planet) => (
             <li
               key={planet.id}
-              className="flex items-center gap-3 rounded-lg border border-neutral-200 px-4 py-3"
+              className="rounded-lg border border-neutral-200 px-4 py-3"
             >
-              <Link href={`/${planet.slug}`} className="min-w-0 flex-1">
-                <p className="truncate font-medium">{planet.title}</p>
-                <p className="truncate text-sm text-neutral-500">
-                  /{planet.slug}
-                </p>
-              </Link>
-              <DeletePlanetButton planetId={planet.id} title={planet.title} />
+              <div className="flex items-center gap-3">
+                <Link href={`/${planet.slug}`} className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{planet.title}</p>
+                </Link>
+                <DeletePlanetButton planetId={planet.id} title={planet.title} />
+              </div>
+
+              <CopyLinkButton slug={planet.slug} />
+
+              <p className="mt-2 text-xs text-neutral-400">
+                이걸 인스타에 올려보세요! 링크를 연 사람은 로그인 없이 바로
+                메시지를 남길 수 있어요.
+              </p>
             </li>
           ))}
         </ul>
