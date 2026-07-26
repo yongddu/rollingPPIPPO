@@ -12,6 +12,7 @@ import {
 } from "@/lib/utils/sphere";
 import { Planet } from "./Planet";
 import { Nebula } from "./Nebula";
+import { Cat } from "./Cat";
 import { MessageLabel } from "./MessageLabel";
 import type { PlanetMessage } from "./types";
 
@@ -68,7 +69,13 @@ export function GlobeCanvas({
       <Nebula />
       <Stars radius={60} depth={30} count={1200} factor={2.4} fade speed={0.4} />
 
+      {/* the planet paints its own light in-shader; these are here for the
+          cat, which uses a standard material */}
+      <ambientLight intensity={1.1} />
+      <directionalLight position={[4, 3, 6]} intensity={1.6} color="#fff2f6" />
+
       <Planet onClick={onPick ? handlePlanetClick : undefined} />
+      <Cat />
       {messages.map((message) => (
         <MessageLabel
           key={message.id}
