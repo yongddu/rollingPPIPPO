@@ -12,6 +12,7 @@ import {
 } from "three";
 import { PLANET_RADIUS } from "@/lib/utils/sphere";
 import { hashString, seededRandom } from "@/lib/utils/random";
+import { playMeow } from "@/lib/meow";
 import { createFurTexture } from "./fur";
 
 /**
@@ -22,6 +23,9 @@ const S = 0.22;
 
 /** How far a cat will wander from the message it belongs to, in radians. */
 const LEASH = 0.3;
+
+/** Length of the hop a cat does when you tap it, in seconds. */
+const HOP_DURATION = 0.45;
 
 const EYE_COLORS = ["#3b8c7a", "#c9a227", "#5b7fbf", "#2f2b38"];
 
@@ -66,6 +70,8 @@ export function Cat({
       speed: 0.09 + random() * 0.09,
       phase: random() * Math.PI * 2,
       offset: random() * Math.PI * 2,
+      // every cat gets its own voice
+      pitch: 0.82 + random() * 0.45,
     };
   }, [seed]);
 
@@ -101,7 +107,7 @@ export function Cat({
       LEASH * 0.6,
     );
 
-    return { home, position, heading, elapsed: 0, settle: 0 };
+    return { home, position, heading, elapsed: 0, settle: 0, hop: -1 };
   }, [anchor, look]);
 
   useFrame((_, delta) => {
@@ -157,9 +163,20 @@ export function Cat({
     // sitting drops the hindquarters a little
     const seat = state.settle * S * 0.12;
 
+    // a startled hop when you tap it
+    let leap = 0;
+    if (state.hop >= 0) {
+      state.hop += step;
+      if (state.hop >= HOP_DURATION) {
+        state.hop = -1;
+      } else {
+        leap = Math.sin((Math.PI * state.hop) / HOP_DURATION) * S * 0.9;
+      }
+    }
+
     group.current.position
       .copy(up)
-      .multiplyScalar(PLANET_RADIUS + S * 0.46 + bob - seat);
+      .multiplyScalar(PLANET_RADIUS + S * 0.46 + bob - seat + leap);
     group.current.setRotationFromMatrix(
       new Matrix4().makeBasis(right, up, forward),
     );
@@ -191,10 +208,19 @@ export function Cat({
     <group ref={group}>
       {/* one invisible hit target: cheaper and far easier to tap than the
           individual body parts, especially on a phone */}
-      <mesh onClick={onTap ? (event) => {
-        event.stopPropagation();
-        onTap();
-      } : undefined} visible={false}>
+      <mesh
+        onClick={
+          onTap
+            ? (event) => {
+                event.stopPropagation();
+                state.hop = 0;
+                playMeow(look.pitch);
+                onTap();
+              }
+            : undefined
+        }
+        visible={false}
+      >
         <sphereGeometry args={[S * 1.25, 8, 8]} />
       </mesh>
 
