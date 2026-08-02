@@ -42,4 +42,40 @@ export const noiseGLSL = /* glsl */ `
     }
     return total;
   }
+
+  // Folding the noise around its midpoint leaves sharp creases instead of
+  // soft blobs — that's what reads as the filaments and wisps of a nebula,
+  // and as the marbled bands on the planet.
+  float fbmRidged(vec3 p) {
+    float total = 0.0;
+    float amplitude = 0.5;
+    for (int i = 0; i < 4; i++) {
+      float n = 1.0 - abs(valueNoise(p) * 2.0 - 1.0);
+      total += n * n * amplitude;
+      p *= 2.13;
+      amplitude *= 0.5;
+    }
+    return total;
+  }
+
+  // One jittered star per cell. Returns brightness and a per-star random,
+  // used to tint some of them warm and some blue.
+  vec2 starField(vec3 dir, float cells, float threshold, float radius) {
+    vec3 sp = dir * cells;
+    vec3 cell = floor(sp);
+    vec3 f = fract(sp);
+
+    float present = hash(cell);
+    if (present < threshold) return vec2(0.0);
+
+    vec3 jitter = vec3(
+      hash(cell + 1.3),
+      hash(cell + 2.7),
+      hash(cell + 5.1)
+    );
+    float d = length(f - jitter);
+    float core = 1.0 - smoothstep(0.0, radius, d);
+
+    return vec2(pow(core, 3.0), hash(cell + 9.2));
+  }
 `;

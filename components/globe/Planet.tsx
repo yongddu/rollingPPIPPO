@@ -28,6 +28,7 @@ const surfaceFragment = /* glsl */ `
   uniform vec3 uDeep;
   uniform vec3 uMid;
   uniform vec3 uWarm;
+  uniform vec3 uVein;
   uniform vec3 uRim;
 
   varying vec3 vLocal;
@@ -48,25 +49,33 @@ const surfaceFragment = /* glsl */ `
     float clouds = fbm(p * 1.6 + warp * 2.1);
     // the low-frequency warp doubles as the banding, saving an fbm call
     float bands = warpA;
+    // the ridged pass creases the noise into marbled veins rather than
+    // the soft blobs plain fbm gives
+    float veins = fbmRidged(p * 1.45 + warp * 2.4);
 
     // fbm lands in a narrow band around 0.45; stretch it so the colour
     // ramp actually reaches both ends instead of sitting in the middle
     float b = clamp((bands - 0.28) / 0.30, 0.0, 1.0);
     float c = clamp((clouds - 0.34) / 0.28, 0.0, 1.0);
+    float v = clamp((veins - 0.30) / 0.38, 0.0, 1.0);
 
     vec3 base = mix(uDeep, uMid, smoothstep(0.1, 0.85, b));
     base = mix(base, uWarm, smoothstep(0.45, 1.0, c) * 0.95);
+    base = mix(base, uVein, smoothstep(0.68, 1.0, v) * 0.45);
 
-    // bright wisps where the cloud field peaks
-    base += uRim * smoothstep(0.8, 1.0, c) * 0.22;
+    // molten highlights along the sharpest veins
+    base += uRim * pow(smoothstep(0.85, 1.0, v), 2.0) * 0.3;
+    base += uRim * smoothstep(0.86, 1.0, c) * 0.15;
 
     vec3 lightDir = ${LIGHT_DIR};
     // half-lambert keeps the night side readable instead of pure black
     float diffuse = dot(normalize(vNormalW), lightDir) * 0.5 + 0.5;
-    base *= 0.2 + 1.15 * diffuse * diffuse;
+    base *= 0.16 + 0.95 * diffuse * diffuse;
 
-    float fresnel = pow(1.0 - max(dot(normalize(vNormalW), vViewDir), 0.0), 3.5);
-    base += uRim * fresnel * 0.4;
+    // tight and bright — the limb is the single feature that sells
+    // "this thing has an atmosphere"
+    float fresnel = pow(1.0 - max(dot(normalize(vNormalW), vViewDir), 0.0), 4.0);
+    base += uRim * fresnel * 0.65;
 
     gl_FragColor = vec4(base, 1.0);
     #include <colorspace_fragment>
@@ -111,10 +120,11 @@ export function Planet({
   const surfaceUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uDeep: { value: new Color("#155d78") },
-      uMid: { value: new Color("#8f77c4") },
-      uWarm: { value: new Color("#f0a2b4") },
-      uRim: { value: new Color("#8fe4f0") },
+      uDeep: { value: new Color("#0b2247") },
+      uMid: { value: new Color("#1a6b8c") },
+      uWarm: { value: new Color("#cf8068") },
+      uVein: { value: new Color("#8f4fa3") },
+      uRim: { value: new Color("#9fe8ff") },
     }),
     [],
   );

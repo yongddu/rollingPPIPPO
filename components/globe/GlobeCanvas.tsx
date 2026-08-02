@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Vector3 } from "three";
 import {
   MAX_DISTANCE,
@@ -136,8 +136,9 @@ export function GlobeCanvas({
     >
       {onSnapshotReady && <SnapshotBridge onReady={onSnapshotReady} />}
 
+      {/* stars are drawn inside the nebula shader now: varied sizes, warm
+          and cool tints, and haloes the point sprites couldn't do */}
       <Nebula />
-      <Stars radius={60} depth={30} count={1200} factor={2.4} fade speed={0.4} />
 
       {/* the planet paints its own light in-shader; these are here for the
           cats, which use standard materials */}
