@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { Vector3 } from "three";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/lib/utils/sphere";
 import { Planet } from "./Planet";
 import { Nebula } from "./Nebula";
-import { Cats } from "./Cats";
+import { Cats, WaitingCat } from "./Cats";
 import { MessageLabel } from "./MessageLabel";
 import type { PlanetMessage } from "./types";
 
@@ -53,18 +53,61 @@ function SnapshotBridge({
   return null;
 }
 
+/**
+ * Swings the camera around to face a spot on the planet. Used after
+ * writing so you actually watch your own cat arrive, instead of the
+ * message appearing somewhere off screen.
+ */
+function CameraFocus({ target }: { target: Vector3 | null }) {
+  const camera = useThree((state) => state.camera);
+  const controls = useThree((state) => state.controls) as unknown as
+    | { update: () => void }
+    | null;
+  const goal = useRef<Vector3 | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    goal.current = target.clone().normalize().multiplyScalar(
+      camera.position.length(),
+    );
+  }, [target, camera]);
+
+  useFrame(() => {
+    if (!goal.current) return;
+    camera.position.lerp(goal.current, 0.09);
+    controls?.update();
+    if (camera.position.distanceTo(goal.current) < 0.02) goal.current = null;
+  });
+
+  return null;
+}
+
 export function GlobeCanvas({
   messages,
   pendingNormal,
+  focusNormal,
+  selectedId,
   onPick,
   onSelectMessage,
+  onCloseMessage,
+  canDelete,
+  deleting,
+  deleteError,
+  onDeleteMessage,
   onContextLost,
   onSnapshotReady,
 }: {
   messages: PlanetMessage[];
   pendingNormal?: Vector3 | null;
+  focusNormal?: Vector3 | null;
+  selectedId: string | null;
   onPick?: (normal: Vector3, scale: number) => void;
-  onSelectMessage?: (message: PlanetMessage) => void;
+  onSelectMessage: (message: PlanetMessage) => void;
+  onCloseMessage: () => void;
+  canDelete: boolean;
+  deleting: boolean;
+  deleteError: string | null;
+  onDeleteMessage: () => void;
   onContextLost?: () => void;
   onSnapshotReady?: (takeSnapshot: () => string) => void;
 }) {
@@ -102,7 +145,22 @@ export function GlobeCanvas({
       <directionalLight position={[4, 3, 6]} intensity={1.6} color="#fff2f6" />
 
       <Planet onClick={onPick ? handlePlanetClick : undefined} />
-      <Cats messages={messages} />
+
+      {messages.length === 0 ? (
+        <WaitingCat />
+      ) : (
+        <Cats
+          messages={messages}
+          selectedId={selectedId}
+          onSelect={onSelectMessage}
+          canDelete={canDelete}
+          deleting={deleting}
+          deleteError={deleteError}
+          onDelete={onDeleteMessage}
+          onClose={onCloseMessage}
+        />
+      )}
+
       {messages.map((message) => (
         <MessageLabel
           key={message.id}
@@ -112,7 +170,10 @@ export function GlobeCanvas({
       ))}
       {pendingNormal && <PendingMarker normal={pendingNormal} />}
 
+      <CameraFocus target={focusNormal ?? null} />
+
       <OrbitControls
+        makeDefault
         enablePan={false}
         enableDamping
         dampingFactor={0.08}

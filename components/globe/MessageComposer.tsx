@@ -86,11 +86,18 @@ export function MessageComposer({
           이 자리에 메시지를 남겨요
         </p>
 
-        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
-          욕설·음란물·비방·개인정보가 담긴 메시지는 행성 주인이 바로 지울 수
-          있어요. 심한 경우 작성이 제한되거나 신고 대상이 될 수 있으니 서로
-          기분 좋은 말만 남겨주세요.
-        </p>
+        {/* the rules still have to be visible at the moment of writing,
+            but folded away so they don't greet you first */}
+        <details className="mb-3 text-xs text-neutral-400">
+          <summary className="cursor-pointer list-none">
+            욕설·비방은 주인이 지울 수 있어요 · 자세히
+          </summary>
+          <p className="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 leading-relaxed text-amber-800">
+            욕설·음란물·비방·개인정보가 담긴 메시지는 행성 주인이 바로 지울 수
+            있어요. 심한 경우 작성이 제한되거나 신고 대상이 될 수 있으니 서로
+            기분 좋은 말만 남겨주세요.
+          </p>
+        </details>
 
         <input
           value={nickname}

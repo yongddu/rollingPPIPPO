@@ -20,9 +20,12 @@ import { createFurTexture } from "./fur";
  */
 const S = 0.22;
 
+/** How far a cat will wander from the message it belongs to, in radians. */
+const LEASH = 0.3;
+
 const EYE_COLORS = ["#3b8c7a", "#c9a227", "#5b7fbf", "#2f2b38"];
 
-/** Clicks should reach the planet underneath, not stop at the cat. */
+/** Clicks land on the invisible hit sphere, not the individual parts. */
 const ignoreRaycast = () => null;
 
 /** Hip offsets: [left/right, front/back]. */
@@ -33,7 +36,19 @@ const LEGS: [number, number][] = [
   [1, -1],
 ];
 
-export function Cat({ seed }: { seed: string }) {
+export function Cat({
+  seed,
+  anchor,
+  sitting = false,
+  onTap,
+  children,
+}: {
+  seed: string;
+  anchor: Vector3;
+  sitting?: boolean;
+  onTap?: () => void;
+  children?: React.ReactNode;
+}) {
   const group = useRef<Group>(null);
   const tail = useRef<Group>(null);
   const head = useRef<Group>(null);
@@ -47,15 +62,10 @@ export function Cat({ seed }: { seed: string }) {
       texture,
       coat,
       eye: EYE_COLORS[Math.floor(random() * EYE_COLORS.length)],
-      speed: 0.22 + random() * 0.22,
+      // slow enough that tapping one isn't whack-a-mole on a phone
+      speed: 0.09 + random() * 0.09,
       phase: random() * Math.PI * 2,
-      // spread cats over the whole sphere instead of clustering
-      start: new Vector3(
-        random() * 2 - 1,
-        random() * 2 - 1,
-        random() * 2 - 1,
-      ).normalize(),
-      startHeading: random() * Math.PI * 2,
+      offset: random() * Math.PI * 2,
     };
   }, [seed]);
 
@@ -81,12 +91,18 @@ export function Cat({ seed }: { seed: string }) {
   useEffect(() => () => tailGeometry.dispose(), [tailGeometry]);
 
   const state = useMemo(() => {
-    const position = look.start.clone();
-    // any direction perpendicular to the surface normal is a valid heading
+    const home = anchor.clone().normalize();
+    // start a little off the message so the cat doesn't cover it
+    const position = home.clone();
     const heading = new Vector3(0, 1, 0).cross(position).normalize();
-    heading.applyAxisAngle(position, look.startHeading);
-    return { position, heading, elapsed: 0 };
-  }, [look]);
+    heading.applyAxisAngle(position, look.offset);
+    position.applyAxisAngle(
+      new Vector3().crossVectors(position, heading).normalize(),
+      LEASH * 0.6,
+    );
+
+    return { home, position, heading, elapsed: 0, settle: 0 };
+  }, [anchor, look]);
 
   useFrame((_, delta) => {
     if (!group.current) return;
@@ -94,19 +110,33 @@ export function Cat({ seed }: { seed: string }) {
     const step = Math.min(delta, 0.1);
     state.elapsed += step;
 
-    // curve the heading slowly so the path meanders instead of tracing
-    // the same great circle forever
-    const turn = Math.sin(state.elapsed * 0.6 + look.phase) * 0.7 * step;
-    state.heading.applyAxisAngle(state.position, turn);
+    // ease in and out of sitting so a tap doesn't snap the legs
+    state.settle += ((sitting ? 1 : 0) - state.settle) * Math.min(1, step * 6);
+    const walking = 1 - state.settle;
 
-    // walk forward along the surface: rotating both vectors about the
-    // axis perpendicular to them keeps the cat glued to the sphere
-    const axis = new Vector3()
-      .crossVectors(state.position, state.heading)
-      .normalize();
-    const angle = (look.speed * step) / PLANET_RADIUS;
-    state.position.applyAxisAngle(axis, angle).normalize();
-    state.heading.applyAxisAngle(axis, angle);
+    if (walking > 0.01) {
+      const turn = Math.sin(state.elapsed * 0.6 + look.phase) * 0.8 * step;
+      state.heading.applyAxisAngle(state.position, turn);
+
+      // a cat belongs to one message, so steer it back when it strays
+      const away = Math.acos(
+        Math.min(1, Math.max(-1, state.position.dot(state.home))),
+      );
+      if (away > LEASH) {
+        const toHome = state.home
+          .clone()
+          .sub(state.position.clone().multiplyScalar(state.position.dot(state.home)))
+          .normalize();
+        state.heading.lerp(toHome, Math.min(1, step * 2.5)).normalize();
+      }
+
+      const axis = new Vector3()
+        .crossVectors(state.position, state.heading)
+        .normalize();
+      const angle = (look.speed * walking * step) / PLANET_RADIUS;
+      state.position.applyAxisAngle(axis, angle).normalize();
+      state.heading.applyAxisAngle(axis, angle);
+    }
 
     // drift accumulates in floating point; re-square the heading against
     // the normal so the cat never sinks into or lifts off the surface
@@ -122,36 +152,52 @@ export function Cat({ seed }: { seed: string }) {
     const forward = state.heading;
     const right = up.clone().cross(forward);
 
-    const stride = state.elapsed * look.speed * 26;
-    const bob = Math.abs(Math.sin(stride)) * S * 0.05;
+    const stride = state.elapsed * look.speed * 34;
+    const bob = Math.abs(Math.sin(stride)) * S * 0.05 * walking;
+    // sitting drops the hindquarters a little
+    const seat = state.settle * S * 0.12;
 
     group.current.position
       .copy(up)
-      .multiplyScalar(PLANET_RADIUS + S * 0.46 + bob);
+      .multiplyScalar(PLANET_RADIUS + S * 0.46 + bob - seat);
     group.current.setRotationFromMatrix(
       new Matrix4().makeBasis(right, up, forward),
     );
+    group.current.rotateX(state.settle * -0.25);
 
     // diagonal pairs swing together, the way a cat actually walks
     legs.current.forEach((leg, index) => {
       if (!leg) return;
       const diagonal = index === 0 || index === 3 ? 0 : Math.PI;
-      leg.rotation.x = Math.sin(stride + diagonal) * 0.5;
+      leg.rotation.x = Math.sin(stride + diagonal) * 0.5 * walking;
     });
 
     if (tail.current) {
-      tail.current.rotation.z = Math.sin(state.elapsed * 2.6 + look.phase) * 0.4;
+      // an interested cat holds its tail up and flicks it faster
+      const flick = sitting ? 4.2 : 2.6;
+      tail.current.rotation.z =
+        Math.sin(state.elapsed * flick + look.phase) * (sitting ? 0.22 : 0.4);
       tail.current.rotation.x =
-        -0.35 + Math.sin(state.elapsed * 1.7) * 0.12;
+        -0.35 + state.settle * -0.5 + Math.sin(state.elapsed * 1.7) * 0.12;
     }
 
     if (head.current) {
-      head.current.rotation.y = Math.sin(state.elapsed * 0.9 + look.phase) * 0.3;
+      head.current.rotation.y =
+        Math.sin(state.elapsed * 0.9 + look.phase) * 0.3 * walking;
     }
   });
 
   return (
     <group ref={group}>
+      {/* one invisible hit target: cheaper and far easier to tap than the
+          individual body parts, especially on a phone */}
+      <mesh onClick={onTap ? (event) => {
+        event.stopPropagation();
+        onTap();
+      } : undefined} visible={false}>
+        <sphereGeometry args={[S * 1.25, 8, 8]} />
+      </mesh>
+
       {/* body */}
       <mesh
         raycast={ignoreRaycast}
@@ -250,6 +296,8 @@ export function Cat({ seed }: { seed: string }) {
           geometry={tailGeometry}
         />
       </group>
+
+      {children}
     </group>
   );
 }

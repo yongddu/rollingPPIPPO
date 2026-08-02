@@ -30,6 +30,7 @@ export function PlanetScene({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [contextLost, setContextLost] = useState(false);
+  const [focus, setFocus] = useState<Vector3 | null>(null);
 
   const handleSnapshotReady = useCallback((take: () => string) => {
     snapshot.current = take;
@@ -95,19 +96,22 @@ export function PlanetScene({
         <GlobeCanvas
           messages={messages}
           pendingNormal={pending?.normal ?? null}
+          focusNormal={focus}
+          selectedId={selected?.id ?? null}
           onPick={(normal, scale) => {
             setSelected(null);
             setPending({ normal, scale });
           }}
-          onSelectMessage={
-            isOwner
-              ? (message) => {
-                  setPending(null);
-                  setDeleteError(null);
-                  setSelected(message);
-                }
-              : undefined
-          }
+          onSelectMessage={(message) => {
+            setPending(null);
+            setDeleteError(null);
+            setSelected(message);
+          }}
+          onCloseMessage={() => setSelected(null)}
+          canDelete={isOwner}
+          deleting={deleting}
+          deleteError={deleteError}
+          onDeleteMessage={deleteSelected}
           onContextLost={() => setContextLost(true)}
           onSnapshotReady={handleSnapshotReady}
         />
@@ -138,11 +142,24 @@ export function PlanetScene({
       )}
 
       {!pending && !selected && (
-        <p className="pointer-events-none absolute inset-x-0 bottom-8 text-center text-xs text-white/60">
-          {isOwner
-            ? "메시지를 누르면 지울 수 있어요. 빈 자리를 누르면 나도 남길 수 있어요."
-            : "행성을 돌려서 원하는 자리를 눌러보세요. 확대할수록 글씨가 작게 남아요."}
-        </p>
+        <div className="pointer-events-none absolute inset-x-0 bottom-8 px-6 text-center">
+          {messages.length === 0 ? (
+            <>
+              <p className="text-base font-medium text-white">
+                아직 아무도 다녀가지 않았어요
+              </p>
+              <p className="mt-1 text-xs text-white/60">
+                행성을 눌러 첫 메시지를 남겨주세요. 메시지마다 고양이 한 마리가
+                찾아와요.
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-white/60">
+              고양이를 누르면 메시지를 읽을 수 있어요. 빈 자리를 누르면 나도
+              남길 수 있어요.
+            </p>
+          )}
+        </div>
       )}
 
       {pending && (
@@ -154,41 +171,17 @@ export function PlanetScene({
           onCreated={(message) => {
             addMessage(message);
             setPending(null);
+            // swing round to the new message and open its cat, so writing
+            // ends with something happening rather than a silent dismissal
+            const normal = new Vector3(
+              message.pos_x,
+              message.pos_y,
+              message.pos_z,
+            );
+            setFocus(normal);
+            setSelected(message);
           }}
         />
-      )}
-
-      {selected && (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur">
-            <p className="text-sm text-neutral-800">{selected.body}</p>
-            <p className="mt-1 text-xs text-neutral-500">
-              — {selected.nickname}
-            </p>
-
-            {deleteError && (
-              <p className="mt-2 text-xs text-red-500">{deleteError}</p>
-            )}
-
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                className="flex-1 rounded-full border border-neutral-300 px-4 py-2 text-sm"
-              >
-                닫기
-              </button>
-              <button
-                type="button"
-                onClick={deleteSelected}
-                disabled={deleting}
-                className="flex-1 rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              >
-                {deleting ? "지우는 중..." : "이 메시지 지우기"}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </>
   );
