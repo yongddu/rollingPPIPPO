@@ -13,7 +13,8 @@ export default async function OpengraphImage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const supabase = await createClient();
 
   const { data: planet } = await supabase

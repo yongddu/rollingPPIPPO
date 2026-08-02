@@ -43,7 +43,9 @@ export async function createPlanet(formData: FormData) {
     });
 
     if (!error) {
-      redirect(`/${slug}`);
+      // the slug can be Korean, and a redirect travels in a Location
+      // header, which can only carry ASCII
+      redirect(`/${encodeURIComponent(slug)}`);
     }
 
     // unique constraint violation on slug — try a suffixed variant

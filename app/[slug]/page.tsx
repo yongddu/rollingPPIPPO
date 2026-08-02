@@ -8,7 +8,10 @@ export default async function PlanetPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  // Korean slugs arrive percent-encoded; slugify strips '%' so decoding an
+  // already-decoded slug is a no-op
+  const slug = decodeURIComponent(rawSlug);
   const supabase = await createClient();
 
   const { data: planet } = await supabase

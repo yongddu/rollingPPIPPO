@@ -45,7 +45,10 @@ export default async function DashboardPage() {
               className="rounded-lg border border-neutral-200 px-4 py-3"
             >
               <div className="flex items-center gap-3">
-                <Link href={`/${planet.slug}`} className="min-w-0 flex-1">
+                <Link
+                  href={`/${encodeURIComponent(planet.slug)}`}
+                  className="min-w-0 flex-1"
+                >
                   <p className="truncate font-medium">{planet.title}</p>
                 </Link>
                 <DeletePlanetButton planetId={planet.id} title={planet.title} />
