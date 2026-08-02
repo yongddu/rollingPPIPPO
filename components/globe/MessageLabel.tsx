@@ -1,6 +1,7 @@
 "use client";
 
 import { Text } from "@react-three/drei";
+import { configureTextBuilder } from "troika-three-text";
 import type { ThreeEvent } from "@react-three/fiber";
 import { Vector3 } from "three";
 import {
@@ -11,6 +12,11 @@ import {
 import type { PlanetMessage } from "./types";
 
 const FONT = "/fonts/Pretendard-Regular.subset.woff";
+
+// troika parses fonts in a worker built from a blob URL, which our CSP
+// refuses. The font is a small subset and there are only a handful of
+// labels, so parsing on the main thread costs little.
+configureTextBuilder({ useWorker: false });
 
 export function MessageLabel({
   message,
